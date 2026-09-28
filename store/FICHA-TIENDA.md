@@ -46,6 +46,7 @@ Proyecto independiente, no afiliado a ninguna universidad, a Sakai ni a Google.
 - Icono de la tienda (128×128): `poliformat-classroom/icons/icon128.png`
 - Capturas (1280×800): `store/screenshots/captura-1.png` … `captura-5.png`
 - Mosaico promocional pequeño (440×280): `store/promo-440x280.png`
+- Mosaico promocional de marquesina (1400×560): `store/marquee-1400x560.png`
 
 ## «Privacy practices» (Prácticas de privacidad)
 
