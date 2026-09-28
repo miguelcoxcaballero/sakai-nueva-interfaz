@@ -39,6 +39,7 @@ const routes = {
   '/direct/assignment/my.json': { assignment_collection: sites.flatMap(s => asg(s.id)) },
 };
 // Favoritas guardadas «en el servidor» (como /portal/favorites de Sakai)
+let normalizeFavs = false; // /__normalize-favs: reordenar y añadir al guardar
 let failFavs = false; // /__fail-favs alterna fallos al guardar (para probar el aviso)
 let favState = { favoriteSiteIds: ['GRA_11548_2026', 'GRA_11546_2026', 'GRA_11549_2025'], autoFavoritesEnabled: true };
 function handle(p) {
@@ -70,6 +71,7 @@ function handle(p) {
 
 http.createServer((req, res) => {
   const p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  if (p === '/__normalize-favs') { normalizeFavs = !normalizeFavs; res.writeHead(200); return res.end(String(normalizeFavs)); }
   if (p === '/__fail-favs') { failFavs = !failFavs; res.writeHead(200); return res.end(String(failFavs)); }
   if (req.method === 'POST' && p === '/portal/favorites/update' && failFavs) { res.writeHead(500); return res.end(); }
   if (req.method === 'POST' && p === '/portal/favorites/update') {
@@ -77,6 +79,10 @@ http.createServer((req, res) => {
     req.on('data', c => { body += c; });
     req.on('end', () => {
       favState = JSON.parse(new URLSearchParams(body).get('userFavorites'));
+      if (normalizeFavs) {
+        // Como puede hacer Sakai: no guarda el orden y añade asignaturas nuevas (auto-favoritas).
+        favState.favoriteSiteIds = [...new Set([...favState.favoriteSiteIds, 'GRA_11551_2026'])].sort();
+      }
       console.log('favoritas guardadas:', favState.favoriteSiteIds.join(', '));
       res.writeHead(200); res.end();
     });

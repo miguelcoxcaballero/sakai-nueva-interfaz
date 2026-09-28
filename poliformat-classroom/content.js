@@ -1038,25 +1038,47 @@
   // La primera vez, lo que se hubiera marcado solo en este navegador se sube a Sakai.
   // Cambios que no se pudieron guardar en Sakai: se conservan y se reintentan.
   const FAVS_PENDING_KEY = 'gc-favs-pending';
+  // Sakai no siempre respeta el orden al guardar: si se detecta, cada dispositivo conserva
+  // su orden (con las mismas asignaturas, que sí vienen de Sakai).
+  const FAVS_UNORDERED_KEY = 'gc-favs-unordered';
   const sameList = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => x === b[i]);
+
+  function readLocalFavs() {
+    try {
+      const v = JSON.parse(localStorage.getItem(FAVS_KEY));
+      return Array.isArray(v) ? v : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Toma la lista de Sakai como la buena (respetando el orden local si Sakai no lo guarda). */
+  function adoptServerFavs(server) {
+    const local = S.favs || readLocalFavs();
+    let list = server.slice();
+    if (localStorage.getItem(FAVS_UNORDERED_KEY) === '1' && Array.isArray(local)) {
+      list = local.filter(id => server.includes(id)).concat(server.filter(id => !local.includes(id)));
+    }
+    const changed = !sameList(list, S.favs);
+    S.favs = list;
+    localStorage.setItem(FAVS_KEY, JSON.stringify(list));
+    return changed;
+  }
 
   function syncFavsFromServer(fav) {
     const server = fav && Array.isArray(fav.favoriteSiteIds) ? fav.favoriteSiteIds : null;
     if (!server) return;
     S.favPayload = fav;
-    let local = null;
-    try { local = JSON.parse(localStorage.getItem(FAVS_KEY)); } catch { /* sin datos locales */ }
+    const local = readLocalFavs();
     const pending = localStorage.getItem(FAVS_PENDING_KEY) === '1';
     // Primera sincronización: manda lo marcado en el ordenador. La app Android nunca sube
     // su lista antigua (salvo cambios hechos en ella que no se llegaron a guardar).
     const migrate = !APP && localStorage.getItem(FAVS_SYNCED_KEY) !== '1';
-    if (Array.isArray(local) && (pending || migrate)) {
+    if (local && (pending || migrate) && !sameList(local, server)) {
       S.favs = local;
-      if (!sameList(local, server)) pushFavs(local);
-      else markSynced();
+      pushFavs(local);
     } else {
-      S.favs = server.slice();
-      localStorage.setItem(FAVS_KEY, JSON.stringify(S.favs));
+      adoptServerFavs(server);
       markSynced();
     }
   }
@@ -1083,31 +1105,44 @@
           body,
         });
         if (!r.ok) throw new Error(`el servidor respondió ${r.status}`);
-        // Comprobar que Sakai lo ha guardado de verdad.
-        const check = await api(`/portal/favorites/list?_${Date.now()}`);
-        if (!sameList(check.favoriteSiteIds, ids)) throw new Error('el servidor no guardó los cambios');
-        S.favPayload = check;
+        // Lo que Sakai haya guardado (puede reordenar o añadir asignaturas nuevas) es lo que vale.
+        const saved = await api(`/portal/favorites/list?_${Date.now()}`);
+        const server = Array.isArray(saved.favoriteSiteIds) ? saved.favoriteSiteIds : ids;
+        // ¿Respeta Sakai el orden? Se compara solo el orden de las asignaturas comunes.
+        const mine = ids.filter(id => server.includes(id)), theirs = server.filter(id => ids.includes(id));
+        if (mine.length > 1) {
+          if (sameList(mine, theirs)) localStorage.removeItem(FAVS_UNORDERED_KEY);
+          else localStorage.setItem(FAVS_UNORDERED_KEY, '1');
+        }
+        S.favPayload = saved;
+        const lost = ids.filter(id => !server.includes(id)).length;
+        adoptServerFavs(server);
         markSynced();
+        if (lost) S.favError = `${lost === 1 ? 'una asignatura no se ha' : lost + ' asignaturas no se han'} podido fijar`;
       } catch (err) {
         S.favError = err.message || String(err);
         console.warn('[Nueva interfaz Sakai] No se pudieron guardar las favoritas en Sakai', err);
       }
       if ($drawer) buildDrawer();
+      if (route().view === 'home') render({ keep: true });
     }, 400);
   }
 
-  // Al volver a la pestaña o a la app se vuelven a leer las favoritas de Sakai, por si
-  // se cambiaron en otro dispositivo mientras tanto.
+  // Al volver a la pestaña o a la app: se reintenta lo pendiente o se vuelven a leer las
+  // favoritas de Sakai, por si se cambiaron en otro dispositivo mientras tanto.
   let lastFavCheck = 0;
   async function refreshFavs() {
-    if (!S.favs || Date.now() - lastFavCheck < 3000 || localStorage.getItem(FAVS_PENDING_KEY) === '1') return;
+    if (!S.favs || Date.now() - lastFavCheck < 3000) return;
     lastFavCheck = Date.now();
+    if (localStorage.getItem(FAVS_PENDING_KEY) === '1') {
+      pushFavs(S.favs);
+      return;
+    }
     try {
       const fav = await api(`/portal/favorites/list?_${Date.now()}`);
-      if (!Array.isArray(fav.favoriteSiteIds) || sameList(fav.favoriteSiteIds, S.favs)) return;
+      if (!Array.isArray(fav.favoriteSiteIds)) return;
       S.favPayload = fav;
-      S.favs = fav.favoriteSiteIds.slice();
-      localStorage.setItem(FAVS_KEY, JSON.stringify(S.favs));
+      if (!adoptServerFavs(fav.favoriteSiteIds)) return;
       buildDrawer();
       if (route().view === 'home') render({ keep: true });
     } catch { /* sin conexión: se reintenta la próxima vez */ }
