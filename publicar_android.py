@@ -7,7 +7,8 @@ Uso:  python publicar_android.py 1.2.0 "Qué cambia en esta versión"
 3. Crea la release «android-v1.2.0» en GitHub con el APK.
 4. Actualiza android-update.json: todas las apps instaladas mostrarán la
    «Actualización obligatoria» la próxima vez que se abran (o en 15 minutos).
-5. Hace commit y push.
+5. Deja el APK en la raíz del repositorio y actualiza el enlace de descarga del README.
+6. Hace commit y push.
 """
 import json
 import os
@@ -76,8 +77,20 @@ def main():
         'releaseNotes': notes,
     }, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
-    # 5. Commit y push
-    run(['git', 'add', str(GRADLE), str(MANIFEST)], cwd=ROOT)
+    # 5. APK también en la raíz del repositorio (como Inhouse Notes) y enlace en el README
+    for old_apk in ROOT.glob('aula-sakai-release-v*.apk'):
+        if old_apk.name != name:
+            run(['git', 'rm', '-q', '--ignore-unmatch', old_apk.name], cwd=ROOT)
+            old_apk.unlink(missing_ok=True)
+    shutil.copy(apk, ROOT / name)
+    readme = ROOT / 'README.md'
+    text = readme.read_text(encoding='utf-8')
+    text = re.sub(r'aula-sakai-release-v\d+\.\d+\.\d+\.apk', name, text)
+    text = re.sub(r'Aula Sakai \d+\.\d+\.\d+ para Android', f'Aula Sakai {version} para Android', text)
+    readme.write_text(text, encoding='utf-8')
+
+    # 6. Commit y push
+    run(['git', 'add', str(GRADLE), str(MANIFEST), str(ROOT / name), str(readme)], cwd=ROOT)
     run(['git', 'commit', '-m', f'Aula Sakai Android {version}\n\n{notes}'], cwd=ROOT)
     run(['git', 'push'], cwd=ROOT)
     print(f'\nPublicada: https://github.com/{REPO}/releases/tag/{tag}')

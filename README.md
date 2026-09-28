@@ -1,5 +1,7 @@
 # Nueva interfaz para Sakai
 
+> 📱 **[Descargar Aula Sakai 1.1.1 para Android (APK)](https://github.com/miguelcoxcaballero/sakai-nueva-interfaz/raw/main/aula-sakai-release-v1.1.1.apk)** — ábrelo en el móvil para instalarlo. Las siguientes versiones se instalan solas desde la app.
+
 Extensión para Chrome y Brave, y app para Android, que da a las aulas virtuales hechas con [Sakai](https://www.sakailms.org/) —como **PoliformaT** (UPV) o el **Aula Virtual** (UM)— una interfaz moderna al estilo de Google Classroom.
 
 ![Tablón de una asignatura](store/screenshots/captura-2.png)
