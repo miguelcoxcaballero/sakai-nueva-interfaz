@@ -36,10 +36,12 @@ const base = '/access/content/group/';
 const routes = {
   '/direct/user/current.json': { id: 'u1', eid: 'mcox', displayName: 'Miguel Cox' },
   '/direct/site.json': { site_collection: sites },
-  '/portal/favorites/list': { favoriteSiteIds: ['GRA_11548_2026', 'GRA_11546_2026', 'GRA_11549_2025'] },
   '/direct/assignment/my.json': { assignment_collection: sites.flatMap(s => asg(s.id)) },
 };
+// Favoritas guardadas «en el servidor» (como /portal/favorites de Sakai)
+let favState = { favoriteSiteIds: ['GRA_11548_2026', 'GRA_11546_2026', 'GRA_11549_2025'], autoFavoritesEnabled: true };
 function handle(p) {
+  if (p === '/portal/favorites/list') return favState;
   if (routes[p]) return routes[p];
   let m;
   if ((m = p.match(/^\/direct\/site\/([^/]+)\/pages\.json$/))) return pages(m[1]);
@@ -67,6 +69,16 @@ function handle(p) {
 
 http.createServer((req, res) => {
   const p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  if (req.method === 'POST' && p === '/portal/favorites/update') {
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', () => {
+      favState = JSON.parse(new URLSearchParams(body).get('userFavorites'));
+      console.log('favoritas guardadas:', favState.favoriteSiteIds.join(', '));
+      res.writeHead(200); res.end();
+    });
+    return;
+  }
   if (p.startsWith('/ext/')) {
     const type = p.endsWith('.css') ? 'text/css; charset=utf-8' : p.endsWith('.png') ? 'image/png' : 'text/javascript; charset=utf-8';
     res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Private-Network': 'true' });

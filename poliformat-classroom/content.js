@@ -96,6 +96,10 @@
 
   // ---------------------------------------------------------------- constantes
 
+  // Dentro de la app Android «Aula Sakai» el script inyectado define window.__gcApp:
+  // se usa un diseño de app nativa (barra inferior, flecha atrás…) en vez del de escritorio.
+  const APP = !!window.__gcApp;
+
   const DAY = 864e5;
   const MONTH = 30 * DAY;
   const PALETTE = ['#1967d2', '#137333', '#e37400', '#c5221f', '#9334e6', '#007b83', '#b80672', '#1a73e8', '#0d652d', '#d56e0c', '#a50e0e', '#5f6368', '#129eaf', '#7627bb', '#185abc'];
@@ -167,6 +171,11 @@
     star: 'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',
     starO: 'M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z',
     drag: 'M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
+    back: 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z',
+    up: 'M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z',
+    down: 'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z',
+    edit: 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z',
+    stream: 'M4 5h16v2H4zm0 6h16v2H4zm0 6h10v2H4z',
     expand: 'M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z',
     comment: 'M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z',
   };
@@ -405,6 +414,7 @@
       api('/portal/favorites/list').catch(() => null),
     ]);
     const favs = (fav && fav.favoriteSiteIds) || [];
+    syncFavsFromServer(fav);
     return (data.site_collection || [])
       .map(x => ({ ...normSite(x), fav: favs.includes(x.id || x.entityId) }))
       .filter(s => s.id && !s.id.startsWith('~') && !s.id.startsWith('!'))
@@ -714,7 +724,7 @@
 
   // ---------------------------------------------------------------- arranque
 
-  let shadow, $app, $top, $main, $drawer, $menu;
+  let shadow, $app, $top, $main, $drawer, $menu, $bottom;
   const S = {};
   let calOffset = 0;
 
@@ -799,13 +809,21 @@
     $app = document.createElement('div');
     $app.className = 'app';
     if (localStorage.getItem(RAIL_KEY) === '1') $app.classList.add('rail');
-    $app.innerHTML = '<header class="topbar"></header><div class="scrim" data-act="drawer-close"></div><nav class="drawer"></nav><main class="main"></main><div class="menu" hidden></div>';
+    if (APP) $app.classList.add('app-mode');
+    $app.innerHTML = '<header class="topbar"></header><div class="scrim" data-act="drawer-close"></div><nav class="drawer"></nav><main class="main"></main><nav class="bottomnav"></nav><div class="menu" hidden></div>';
     shadow.appendChild($app);
     $top = $app.querySelector('.topbar');
     $main = $app.querySelector('.main');
     $drawer = $app.querySelector('.drawer');
     $menu = $app.querySelector('.menu');
+    $bottom = $app.querySelector('.bottomnav');
     setupDrawerDnd();
+    // Botón atrás de Android: primero cierra menús y el menú lateral.
+    window.__gcBack = () => {
+      if ($menu && !$menu.hidden) { closeMenu(); return true; }
+      if ($app.classList.contains('drawer-open')) { closeDrawer(); return true; }
+      return false;
+    };
 
     document.body.appendChild(host);
 
@@ -850,6 +868,7 @@
   async function onClick(e) {
     const el = e.target.closest && e.target.closest('[data-nav],[data-act]');
     if (!el || (!el.closest('.menu') && !['apps', 'colors', 'sitemenu'].includes(el.dataset.act))) closeMenu();
+    if (el && el.closest('.menu') && el.dataset.act === 'fav') closeMenu();
     if (!el) return;
 
     if (el.hasAttribute('data-nav')) {
@@ -865,6 +884,16 @@
         else localStorage.setItem(RAIL_KEY, $app.classList.toggle('rail') ? '1' : '0');
         break;
       case 'drawer-close': closeDrawer(); break;
+      case 'back':
+        if (history.length > 1) history.back();
+        else go('/portal');
+        break;
+      case 'drawer-edit':
+        drawerEditing = !drawerEditing;
+        $drawer.classList.toggle('editing', drawerEditing);
+        el.classList.toggle('on', drawerEditing);
+        break;
+      case 'favmove': moveFav(el.dataset.site, Number(el.dataset.dir)); break;
       case 'toggle':
         localStorage.setItem(OFF_KEY, '1');
         shadow.querySelectorAll('.switch').forEach(s => { s.classList.remove('on'); s.setAttribute('aria-checked', 'false'); });
@@ -876,7 +905,8 @@
       case 'setcolor': setColor(el.dataset.site, el.dataset.color); closeMenu(); break;
       case 'fav': e.preventDefault(); toggleFav(el.dataset.site); break;
       case 'term':
-        sessionStorage.setItem('gc-term', el.dataset.term);
+        localStorage.setItem(SIDE_TERM_KEY, el.dataset.term);
+        buildDrawer();
         render();
         break;
       case 'more':
@@ -914,6 +944,11 @@
     menuFor = btn;
     const siteId = btn.dataset.site || route().siteId;
     let html = '';
+    if (colors && tools) {
+      const sites = await getSites().catch(() => []);
+      const isFav = favIds(sites).includes(siteId);
+      html += `<button class="menu-btn fav-btn" data-act="fav" data-site="${esc(siteId)}">${icon(isFav ? 'star' : 'starO')}${isFav ? 'Quitar de favoritas' : 'Añadir a favoritas'}</button><div class="menu-sep"></div>`;
+    }
     if (colors) {
       const cur = siteColor(siteId);
       html += `<div class="menu-h">Color de la asignatura</div>
@@ -944,7 +979,7 @@
     const s = sites.find(x => x.id === siteId);
     if (s) s.color = siteColor(siteId);
     buildDrawer();
-    render();
+    render({ keep: true });
   }
 
   // ---------------------------------------------------------------- estructura
@@ -961,34 +996,112 @@
       crumbHtml = `<span class="crumb-sep">${icon('chevR')}</span><span class="crumb"><span class="t1">${esc(crumb)}</span></span>`;
     }
     $top.classList.toggle('has-crumb', !!crumbHtml);
+    const lead = APP && (site || crumb)
+      ? `<button class="ibtn" data-act="back" title="Atrás">${icon('back')}</button>`
+      : `<button class="ibtn" data-act="drawer" title="Menú principal">${icon('menu')}</button>`;
     $top.innerHTML = `
-      <button class="ibtn" data-act="drawer" title="Menú principal">${icon('menu')}</button>
+      ${lead}
       <a class="brand" data-nav href="/portal">${LOGO}</a>
       ${crumbHtml}
       <div class="top-right">
-        ${switchHtml(true)}
-        ${site && !site.id.startsWith('~') ? `<button class="ibtn" data-act="apps" title="Todas las herramientas de la asignatura">${icon('apps')}</button>` : ''}
-        <span class="me" title="${esc(S.user.name)}">${avatar(S.user.id, S.user.name, 32)}</span>
+        ${APP ? '' : switchHtml(true)}
+        ${site && !site.id.startsWith('~') ? `<button class="ibtn" data-act="apps" title="Todas las herramientas de la asignatura">${icon(APP ? 'more' : 'apps')}</button>` : ''}
+        ${APP && site ? '' : `<span class="me" title="${esc(S.user.name)}">${avatar(S.user.id, S.user.name, 32)}</span>`}
       </div>`;
   }
 
   const TABS = [['stream', 'Tablón'], ['classwork', 'Trabajo de clase'], ['people', 'Personas'], ['grades', 'Calificaciones']];
-  const tabBar = (site, active) => `<nav class="tabbar">${TABS.map(([k, label]) =>
-    `<a data-nav href="${siteHref(site.id, k)}" class="tab${k === active ? ' on' : ''}">${label}</a>`).join('')}</nav>`;
+  const TAB_ICONS = { stream: 'stream', classwork: 'assignment', people: 'people', grades: 'grade' };
+  const TAB_SHORT = { stream: 'Tablón', classwork: 'Trabajo', people: 'Personas', grades: 'Notas' };
+  function tabBar(site, active) {
+    if (APP) {
+      $bottom.innerHTML = TABS.map(([k]) => `
+        <a data-nav href="${siteHref(site.id, k)}" class="bn${k === active ? ' on' : ''}">
+          <span class="bn-ico">${icon(TAB_ICONS[k])}</span><span class="bn-lbl">${TAB_SHORT[k]}</span></a>`).join('');
+      $app.classList.add('has-bottom');
+      return '';
+    }
+    return `<nav class="tabbar">${TABS.map(([k, label]) =>
+      `<a data-nav href="${siteHref(site.id, k)}" class="tab${k === active ? ' on' : ''}">${label}</a>`).join('')}</nav>`;
+  }
 
   const SIDE_TERM_KEY = 'gc-side-term';
   const MORE_KEY = 'gc-side-more';
   const FAVS_KEY = 'gc-favs';
 
-  // Lista ordenada de ids de asignaturas favoritas (se guarda en el navegador).
+  const FAVS_SYNCED_KEY = 'gc-favs-synced';
+
+  // Favoritas: son las asignaturas «fijadas» de Sakai (/portal/favorites), así que se
+  // comparten entre el ordenador, el móvil y la propia web de Sakai. El orden también.
+  // La primera vez, lo que se hubiera marcado solo en este navegador se sube a Sakai.
+  function syncFavsFromServer(fav) {
+    const server = fav && Array.isArray(fav.favoriteSiteIds) ? fav.favoriteSiteIds : null;
+    if (!server) return;
+    S.favPayload = fav;
+    let local = null;
+    try { local = JSON.parse(localStorage.getItem(FAVS_KEY)); } catch { /* sin datos locales */ }
+    if (Array.isArray(local) && localStorage.getItem(FAVS_SYNCED_KEY) !== '1') {
+      S.favs = local;
+      pushFavs(local);
+    } else {
+      S.favs = server.slice();
+      localStorage.setItem(FAVS_KEY, JSON.stringify(S.favs));
+      localStorage.setItem(FAVS_SYNCED_KEY, '1');
+    }
+  }
+
+  let pushTimer = null;
+  function pushFavs(ids) {
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(async () => {
+      try {
+        const cur = await api(`/portal/favorites/list?_${Date.now()}`).catch(() => S.favPayload || {});
+        const body = new URLSearchParams();
+        body.append('userFavorites', JSON.stringify({ ...cur, favoriteSiteIds: ids }));
+        const r = await fetch('/portal/favorites/update', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+          body,
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        localStorage.setItem(FAVS_SYNCED_KEY, '1');
+      } catch (err) {
+        console.warn('[Nueva interfaz Sakai] No se pudieron guardar las favoritas en Sakai', err);
+      }
+    }, 500);
+  }
+
+  // Lista ordenada de ids de asignaturas favoritas.
   function favIds(sites) {
+    if (S.favs) return S.favs;
     try {
       const v = JSON.parse(localStorage.getItem(FAVS_KEY));
       if (Array.isArray(v)) return v;
     } catch { /* valor corrupto: se vuelve a importar */ }
     return sites.filter(x => x.fav).map(x => x.id);
   }
-  const saveFavs = ids => localStorage.setItem(FAVS_KEY, JSON.stringify(ids));
+  function saveFavs(ids) {
+    S.favs = ids.slice();
+    localStorage.setItem(FAVS_KEY, JSON.stringify(S.favs));
+    pushFavs(S.favs);
+  }
+
+  // Mover una favorita arriba/abajo (modo edición del menú lateral, pensado para pantallas táctiles).
+  let drawerEditing = false;
+  async function moveFav(siteId, dir) {
+    const visible = [...$drawer.querySelectorAll('.dn-row.dfav')].map(r => r.dataset.site);
+    const i = visible.indexOf(siteId), j = i + dir;
+    if (i < 0 || j < 0 || j >= visible.length) return;
+    [visible[i], visible[j]] = [visible[j], visible[i]];
+    const sites = await getSites().catch(() => []);
+    const favs = favIds(sites).slice();
+    const slots = favs.map((id, k) => (visible.includes(id) ? k : -1)).filter(k => k >= 0);
+    slots.forEach((slot, k) => { favs[slot] = visible[k]; });
+    saveFavs(favs);
+    buildDrawer();
+    if (route().view === 'home') render({ keep: true });
+  }
 
   // Ordena: primero las favoritas en su orden, luego el resto alfabéticamente.
   function byFavs(list, favs) {
@@ -1001,13 +1114,13 @@
 
   async function toggleFav(siteId) {
     const sites = await getSites().catch(() => []);
-    const favs = favIds(sites);
+    const favs = favIds(sites).slice();
     const i = favs.indexOf(siteId);
     if (i >= 0) favs.splice(i, 1);
     else favs.push(siteId);
     saveFavs(favs);
     buildDrawer();
-    if (route().view === 'home') render();
+    if (route().view === 'home') render({ keep: true });
   }
 
   // Arrastrar y soltar para reordenar las favoritas del menú lateral.
@@ -1037,11 +1150,11 @@
       // Nuevo orden de las visibles, respetando la posición de las favoritas de otros cursos.
       const visible = [...$drawer.querySelectorAll('.dn-row.dfav')].map(r => r.dataset.site);
       const sites = await getSites().catch(() => []);
-      const favs = favIds(sites);
+      const favs = favIds(sites).slice();
       const slots = favs.map((id, i) => (visible.includes(id) ? i : -1)).filter(i => i >= 0);
       slots.forEach((slot, k) => { favs[slot] = visible[k]; });
       saveFavs(favs);
-      if (route().view === 'home') render();
+      if (route().view === 'home') render({ keep: true });
     });
   }
 
@@ -1061,6 +1174,8 @@
         ${fav ? `<span class="dn-drag" title="Arrastra para reordenar">${icon('drag')}</span>` : ''}
         ${item(siteHref(s.id), s.id, `<span class="dav" style="background:${s.color}">${esc(initial(s.title))}</span>`, s.title, s.sub).replace('<a ', '<a draggable="false" ')}
         <span class="dn-actions">
+          ${fav ? `<button class="dn-act dn-move" data-act="favmove" data-dir="-1" data-site="${esc(s.id)}" title="Subir">${icon('up')}</button>
+          <button class="dn-act dn-move" data-act="favmove" data-dir="1" data-site="${esc(s.id)}" title="Bajar">${icon('down')}</button>` : ''}
           <button class="dn-act${fav ? ' on' : ''}" data-act="fav" data-site="${esc(s.id)}" title="${fav ? 'Quitar de favoritas' : 'Añadir a favoritas'}">${icon(fav ? 'star' : 'starO')}</button>
           <button class="dn-act" data-act="colors" data-site="${esc(s.id)}" title="Cambiar el color de ${esc(s.title)}">${icon('palette')}</button>
         </span>
@@ -1081,7 +1196,8 @@
       ${item('/portal', 'home', icon('home'), 'Página principal')}
       ${item('/portal#gc/calendar', 'calendar', icon('event'), 'Calendario')}
       <div class="dsep"></div>
-      <div class="dh" title="Inscrito">${icon('school')}<span class="lbl">Inscrito</span></div>
+      <div class="dh" title="Inscrito">${icon('school')}<span class="lbl">Inscrito</span>
+        <button class="dh-edit lbl${drawerEditing ? ' on' : ''}" data-act="drawer-edit" title="Editar favoritas, orden y colores">${icon('edit')}<span>Editar</span></button></div>
       ${item('/portal#gc/todo', 'todo', icon('todo'), 'Pendientes')}
       ${terms.length ? `<div class="dterm lbl"><select class="sel dsel" data-change="sideterm" aria-label="Curso académico">
         ${terms.map(t => `<option value="${esc(t)}"${t === term ? ' selected' : ''}>Curso ${esc(t)}</option>`).join('')}
@@ -1095,7 +1211,9 @@
         ${rest.map(siteItem).join('')}
       </details>` : ''}
       ${ws.length ? `<div class="dsep"></div><div class="dh" title="Mi espacio">${icon('home')}<span class="lbl">Mi espacio</span></div>
-        ${ws.map(p => item(pageHref('~' + S.user.id, p), p.id, icon(pageIcon(p)), p.title)).join('')}` : ''}`;
+        ${ws.map(p => item(pageHref('~' + S.user.id, p), p.id, icon(pageIcon(p)), p.title)).join('')}` : ''}
+      ${APP ? `<div class="dsep"></div><div class="dswitch">${switchHtml(true)}</div>` : ''}`;
+    $drawer.classList.toggle('editing', drawerEditing);
     const more = $drawer.querySelector('.dmore');
     if (more) more.addEventListener('toggle', () => sessionStorage.setItem(MORE_KEY, more.open ? '1' : '0'));
     highlightDrawer(route());
@@ -1124,20 +1242,28 @@
   const stale = seq => seq !== current;
   const q = sel => $main.querySelector(sel);
 
-  async function render() {
+  // keep: repintar la vista actual sin cerrar el menú lateral ni volver arriba
+  // (al marcar favoritas, reordenar o cambiar colores desde el menú).
+  async function render(opts) {
+    const keep = !!(opts && opts.keep === true);
     const seq = current = ++seqCounter;
     const r = route();
     closeMenu();
-    closeDrawer();
+    if (!keep) closeDrawer();
     highlightDrawer(r);
-    $main.innerHTML = loading();
-    window.scrollTo(0, 0);
+    $app.classList.remove('has-bottom');
+    const y = window.scrollY;
+    if (!keep) {
+      $main.innerHTML = loading();
+      window.scrollTo(0, 0);
+    }
     try {
       if (r.view === 'home') await viewHome(seq);
       else if (r.view === 'todo') await viewTodo(seq);
       else if (r.view === 'calendar') await viewCalendar(seq);
       else if (r.view === 'class') await viewClass(r, seq);
       else await viewTool(r, seq);
+      if (keep) window.scrollTo(0, y);
     } catch (err) {
       console.error('[Nueva interfaz Sakai]', err);
       if (!stale(seq)) $main.innerHTML = errorBox(`No se pudo cargar esta página (${err.message}).`);
@@ -1153,14 +1279,17 @@
     if (stale(seq)) return;
     if (!sites.length) { $main.innerHTML = empty('No estás inscrito en ninguna asignatura'); return; }
 
+    // Mismo curso que el menú lateral; solo las favoritas (si no hay ninguna, todas con un aviso).
     const terms = [...new Set(sites.map(s => s.term).filter(Boolean))].sort().reverse();
-    let filter = sessionStorage.getItem('gc-term') || 'all';
-    if (filter !== 'all' && !terms.includes(filter)) filter = 'all';
-    const ordered = byFavs(sites, favIds(sites));
-    const shown = filter === 'all' ? ordered : ordered.filter(s => s.term === filter);
-    const courses = shown.filter(s => s.type === 'course');
-    const others = shown.filter(s => s.type !== 'course');
-    const groups = courses.length && others.length ? [['', courses], ['Otros espacios', others]] : [['', shown]];
+    let term = localStorage.getItem(SIDE_TERM_KEY) || terms[0] || 'all';
+    if (term !== 'all' && !terms.includes(term)) term = terms[0] || 'all';
+    const favList = favIds(sites);
+    const inTerm = term === 'all' ? sites : sites.filter(s => s.term === term);
+    const favs = byFavs(inTerm.filter(s => favList.includes(s.id)), favList);
+    const shown = favs.length ? favs : byFavs(inTerm, []);
+    const hint = !inTerm.length ? 'No hay asignaturas en este curso.'
+      : !favs.length ? 'Aún no tienes asignaturas favoritas en este curso, así que se muestran todas. Márcalas con ☆ (menú ⋮ de cada tarjeta o «Editar» en el menú lateral) para ver solo esas.' : '';
+    const groups = [['', shown]];
 
     const card = s => `
       <li class="card" style="--c:${s.color}">
@@ -1180,7 +1309,8 @@
 
     $main.innerHTML = `
       <div class="home">
-        ${terms.length > 1 ? `<div class="chips">${['all', ...terms].map(t => `<button class="chip${t === filter ? ' on' : ''}" data-act="term" data-term="${esc(t)}">${t === 'all' ? 'Todas' : esc(t)}</button>`).join('')}</div>` : ''}
+        ${terms.length > 1 ? `<div class="chips">${[...terms, 'all'].map(t => `<button class="chip${t === term ? ' on' : ''}" data-act="term" data-term="${esc(t)}">${t === 'all' ? 'Todos los cursos' : esc(t)}</button>`).join('')}</div>` : ''}
+        ${hint ? `<p class="home-hint">${esc(hint)}</p>` : ''}
         ${groups.map(([h, list]) => `${h ? `<h2 class="home-h">${esc(h)}</h2>` : ''}<ul class="cards">${list.map(card).join('')}</ul>`).join('')}
       </div>`;
 
@@ -1533,7 +1663,10 @@
       table.listHier th,table.table th,.table th,table.lines th{background:#fff!important;color:#5f6368!important;font-weight:500!important;border:0!important;border-bottom:1px solid #dadce0!important;padding:12px 8px!important}
       table.listHier td,table.table td,.table td,table.lines td{border:0!important;border-bottom:1px solid #e8eaed!important;padding:12px 8px!important;background:#fff!important}
       .panel,.card,.well,.sak-banner-info,.messageInformation,.instruction{border-radius:8px!important;border-color:#dadce0!important;box-shadow:none!important}
-      .panel-heading{background:#fff!important;border-color:#dadce0!important}`;
+      .panel-heading{background:#fff!important;border-color:#dadce0!important}
+      @media (max-width:600px){.portletBody,.Mrphs-container,#content{padding:12px!important}
+        table{display:block;overflow-x:auto;max-width:100%}
+        input[type=text],select,textarea{max-width:100%}}`;
   }
 
   function frame(src, color, tabs = '') {

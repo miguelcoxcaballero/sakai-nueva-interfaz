@@ -476,3 +476,145 @@ a.crumb:hover .t1 { text-decoration: underline; }
   .gr-avg { margin-left: 0; text-align: left; }
   .cal-grid { grid-template-columns: repeat(7, minmax(96px, 1fr)); }
 }
+
+/* ---------- Menú lateral: modo edición (favoritas, orden y colores; pensado para táctil) ---------- */
+.dh-edit {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border-radius: 16px; font-family: var(--font); font-size: 13px; font-weight: 500; color: var(--muted);
+}
+.dh-edit .i { width: 18px; height: 18px; }
+.dh-edit:hover { background: var(--hover); }
+.dh-edit.on { background: var(--sel); color: var(--sel-text); }
+.dh-edit.on .i { color: var(--sel-text); }
+.dn-move { display: none !important; }
+.drawer.editing .dn-actions { display: flex; }
+.drawer.editing .dn-move { display: flex !important; }
+.drawer.editing .dn-drag { display: flex; }
+.drawer.editing .dn-row .dn { padding-right: 150px; }
+.drawer.editing .dn-row.dfav .dn { padding-right: 150px; }
+.drawer:not(.editing) .dn-row:not(.dfav) .dn { padding-right: 84px; }
+@media (hover: none) {
+  /* En pantallas táctiles no hay "pasar el ratón": las acciones salen con «Editar» */
+  .dn-row:hover .dn-actions, .dfav:hover .dn-drag { display: none; }
+  .drawer.editing .dn-row .dn-actions, .drawer.editing .dfav .dn-drag { display: flex; }
+  .dn-row .dn { padding-right: 16px; }
+}
+.dswitch { padding: 4px 16px 8px 16px; }
+.dswitch .switch { width: 100%; justify-content: space-between; height: 48px; padding: 0 12px; }
+.home-hint { margin: 0 0 16px; font-size: 13px; color: var(--muted); }
+.fav-btn { display: flex; align-items: center; gap: 12px; color: var(--text); }
+.fav-btn .i { width: 20px; height: 20px; color: #f9ab00; }
+.bottomnav { display: none; }
+
+/* ---------- Calendario como agenda en pantallas estrechas ---------- */
+@media (max-width: 600px) {
+  .cal-grid { display: flex; flex-direction: column; overflow: visible; }
+  .cal-col { display: flex; min-height: 0; }
+  .cal-h { flex: none; width: 64px; justify-content: flex-start; padding: 10px 4px; }
+  .cal-n { width: 36px; height: 36px; font-size: 18px; }
+  .cal-items { flex: 1; padding: 8px 8px 8px 0; }
+  .cal-items:empty::after { content: 'Sin entregas'; display: block; padding-top: 10px; font-size: 12px; color: var(--muted); }
+  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .chip { flex: none; }
+}
+
+/* =========================================================================
+   Modo app (Android «Aula Sakai»): aspecto de la app nativa de Classroom,
+   estilo Material You (barra inferior, esquinas redondeadas, cajón con píldoras).
+   ========================================================================= */
+.app-mode { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; --m3-surface: #f0f4f9; --sel: #d3e3fd; --sel-text: #041e49; }
+.app-mode .topbar { border-bottom: 0; height: 64px; padding: 0 4px; }
+.app-mode .topbar .ibtn { width: 48px; height: 48px; color: #1f1f1f; }
+.app-mode .crumb .t1 { font-size: 20px; color: #1f1f1f; }
+.app-mode .top-right .ibtn { color: #444746; }
+.app-mode .main { animation: gc-in .18s ease-out; }
+@keyframes gc-in { from { opacity: .4; } to { opacity: 1; } }
+.app-mode.has-bottom .main { padding-bottom: 88px; }
+.app-mode.has-bottom .main:has(.framewrap) { padding-bottom: 0; }
+.app-mode button, .app-mode .dn, .app-mode .bn, .app-mode .tab, .app-mode .chip { -webkit-user-select: none; user-select: none; }
+
+/* Barra de navegación inferior (Tablón · Trabajo · Personas · Notas) */
+.app-mode.has-bottom .bottomnav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 22;
+  display: flex; height: 80px; padding: 12px 0 16px; background: var(--m3-surface);
+}
+.bn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #444746; }
+.bn-ico { width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; transition: background .2s; }
+.bn-ico .i { width: 24px; height: 24px; }
+.bn-lbl { font-family: var(--font); font-size: 12px; font-weight: 500; letter-spacing: .5px; }
+.bn.on { color: #1f1f1f; }
+.bn.on .bn-ico { background: color-mix(in srgb, var(--c) 22%, #fff); color: color-mix(in srgb, var(--c) 70%, #000); }
+.bn.on .bn-lbl { font-weight: 700; }
+.bn:active .bn-ico { background: color-mix(in srgb, var(--c) 30%, #fff); }
+
+/* Cajón lateral estilo Material 3 */
+@media (max-width: 999px) {
+  .app-mode .drawer { width: min(320px, 86vw); border-radius: 0 16px 16px 0; padding: 12px 0; background: #fff; }
+}
+.app-mode .dn, .app-mode .dh { margin: 0 12px; padding-left: 16px; border-radius: 28px; width: auto; }
+.app-mode .dn { min-height: 56px; }
+.app-mode .dn:active { background: #e3e3e3; }
+.app-mode .dsep { margin: 8px 28px; }
+
+/* Página principal: tarjetas de imagen, como en la app */
+.app-mode .home { padding: 12px 16px 24px; }
+.app-mode .cards { grid-template-columns: 1fr; gap: 12px; }
+.app-mode .card { height: auto; border: 0; border-radius: 16px; overflow: hidden; }
+.app-mode .card:hover { box-shadow: none; }
+.app-mode .card:active { transform: scale(.99); }
+.app-mode .card-head { height: 128px; padding: 18px 16px 14px; }
+.app-mode .card-title { font-size: 22px; line-height: 28px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.app-mode .card-sub, .app-mode .card-owner { padding-right: 16px; }
+.app-mode .card-av, .app-mode .card-foot { display: none; }
+.app-mode .card-body { padding: 0; background: #fff; }
+.app-mode .card-body::before { display: none; }
+.app-mode .card-body:not(:empty) { padding: 10px 16px 4px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 16px 16px; }
+.app-mode .chip { height: 32px; border-radius: 8px; }
+
+/* Tablón */
+.app-mode .page { padding: 12px 16px 24px; }
+.app-mode .banner { height: 140px; border-radius: 16px; }
+.app-mode .stream-grid { margin-top: 16px; gap: 16px; }
+.app-mode .stream-grid > aside { display: none; }
+.app-mode .compose { border-radius: 16px; box-shadow: none; border: 1px solid var(--line); margin-bottom: 16px; }
+.app-mode .post { border-radius: 16px; margin-bottom: 12px; }
+.app-mode .post-asg { padding: 14px 8px 14px 16px; }
+.app-mode .post .ibtn.sm { display: none; }
+.app-mode .post-h { padding: 16px 16px 0; }
+.app-mode .post-title, .app-mode .post-body { padding-left: 16px; padding-right: 16px; }
+.app-mode .post .atts { margin: -4px 16px 16px; }
+.app-mode .att { border-radius: 12px; }
+
+/* Trabajo de clase */
+.app-mode .cw-actions { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; gap: 8px; margin: 0 -16px 16px; padding: 0 16px; scrollbar-width: none; }
+.app-mode .btn.t { flex: none; height: 32px; border: 1px solid var(--line); border-radius: 8px; color: #444746; }
+.app-mode .btn.t .i { color: var(--c); }
+.app-mode .topic { margin-bottom: 28px; }
+.app-mode .topic-h { font-size: 22px; line-height: 28px; padding-bottom: 8px; }
+.app-mode .item > summary, .app-mode a.item, .app-mode .titem { padding: 10px 4px 10px 8px; min-height: 60px; }
+.app-mode .item > summary .ibtn { display: none; }
+.app-mode .item[open] { border-radius: 16px; box-shadow: none; }
+.app-mode .item-d { display: block; font-size: 11px; }
+.app-mode .item-t { font-size: 15px; }
+.app-mode .item > summary:active, .app-mode a.item:active, .app-mode .titem:active { background: color-mix(in srgb, var(--c) 10%, #fff); }
+
+/* Personas, notas, pendientes */
+.app-mode .people-h { font-size: 22px; line-height: 28px; padding: 0 4px 10px; }
+.app-mode .person { padding: 6px 4px; }
+.app-mode .gr-head { border-radius: 16px; }
+.app-mode .tgroup > summary { padding: 16px 8px; }
+
+/* Herramientas incrustadas: todo el alto disponible */
+.app-mode .framewrap { height: calc(100dvh - 64px); }
+.app-mode.has-bottom .framewrap { height: calc(100dvh - 64px - 80px); }
+.app-mode .menu { border-radius: 12px; }
+
+/* App: en listas, la fecha va debajo del título (como en Classroom para Android) */
+.app-mode .item > summary, .app-mode a.item, .app-mode .titem {
+  display: grid; grid-template-columns: 40px 1fr; column-gap: 16px; row-gap: 2px; align-items: center;
+}
+.app-mode .item-ico { grid-row: 1 / span 2; }
+.app-mode .item-t { grid-column: 2; align-self: end; }
+.app-mode .item-d { grid-column: 2; align-self: start; white-space: normal; }
+.app-mode .item-d:empty { display: none; }
+.app-mode .item-t small { margin-top: 1px; }

@@ -17,20 +17,29 @@ Más detalles en [poliformat-classroom/README.md](poliformat-classroom/README.md
 
 ## App para Android
 
-**Aula Sakai** es la versión para móvil: la misma interfaz dentro de una app ligera (≈110 KB).
+**Aula Sakai** es la versión para móvil, con el aspecto de la app de Classroom para Android (barra de navegación inferior, tarjetas redondeadas, menú lateral de Material You). Muy ligera (≈120 KB).
 
-- Descarga el APK desde la [última versión](https://github.com/miguelcoxcaballero/sakai-nueva-interfaz/releases/latest) y ábrelo en el móvil (Android 7 o superior). Si Android lo pide, permite instalar apps de esa fuente.
+- Descarga el APK de la [última versión](https://github.com/miguelcoxcaballero/sakai-nueva-interfaz/releases) (etiquetas `android-vX.Y.Z`) y ábrelo en el móvil (Android 7 o superior).
 - Al abrirla eliges tu aula: PoliformaT, Aula Virtual UM u otra aula Sakai. Para cambiarla, mantén pulsado el icono → «Cambiar de aula».
-- Subida de archivos desde el móvil, Drive o Fotos; los PDF se abren en un visor propio (zoom con dos dedos o doble toque, «Abrir con» y «Compartir»); el resto de archivos se abren con la app que corresponda.
+- **Favoritas sincronizadas**: son las asignaturas fijadas de Sakai, así que el ordenador (extensión), el móvil y la web de Sakai muestran las mismas y en el mismo orden. En el móvil se editan con «Editar» en el menú lateral (☆, ↑ ↓ y colores) o con el menú ⋮ de cada tarjeta.
+- Subida de archivos desde el móvil, Drive o Fotos; visor de PDF propio (zoom, «Abrir con», «Compartir»).
+- **Actualizaciones dentro de la app**: al abrirla, al volver a ella y cada 15 minutos consulta [`android-update.json`](android-update.json); si hay una versión nueva muestra «Actualización obligatoria», descarga el APK dentro de la app y abre el instalador de Android.
 
 <p>
-  <img src="store/android/app-inicio.png" width="200" alt="Página principal">
-  <img src="store/android/app-trabajo.png" width="200" alt="Trabajo de clase">
-  <img src="store/android/app-pdf.png" width="200" alt="Visor de PDF">
-  <img src="store/android/app-subir-archivo.png" width="200" alt="Subir archivo">
+  <img src="store/android/app-inicio.png" width="180" alt="Página principal">
+  <img src="store/android/app-clase.png" width="180" alt="Tablón">
+  <img src="store/android/app-trabajo.png" width="180" alt="Trabajo de clase">
+  <img src="store/android/app-menu.png" width="180" alt="Menú lateral en modo edición">
+  <img src="store/android/app-pdf.png" width="180" alt="Visor de PDF">
 </p>
 
-Código en [`android/`](android/). Para compilar: `cd android && gradlew assembleRelease` (necesita el SDK de Android y un `keystore.properties` con la clave de firma, que no se sube al repositorio).
+### Publicar una versión nueva de la app
+
+```
+python publicar_android.py 1.2.0 "Qué cambia"
+```
+
+Compila el APK firmado, crea la release `android-v1.2.0` con `aula-sakai-release-v1.2.0.apk`, actualiza `android-update.json` y hace push. Las apps instaladas pedirán actualizar en cuanto lo detecten. Necesita la clave de firma (`android/keystore.properties` y `android/aula-sakai-release.keystore`), que no se sube al repositorio.
 
 ## Instalar la extensión en modo desarrollador
 

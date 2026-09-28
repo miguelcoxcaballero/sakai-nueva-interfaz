@@ -7,3 +7,4 @@ keystore.properties
 *.jks
 .idea/
 *.iml
+test-shots/

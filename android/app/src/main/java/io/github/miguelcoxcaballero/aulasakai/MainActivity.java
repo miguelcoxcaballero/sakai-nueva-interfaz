@@ -81,6 +81,7 @@ public class MainActivity extends Activity {
     private boolean documentStartScript;
     private WebViewAssetLoader assetLoader;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private Updater updater;
 
     // ------------------------------------------------------------------ ciclo de vida
 
@@ -88,6 +89,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         Downloads.cleanOld(this);
+        updater = new Updater(this);
         setupBackHandling();
 
         site = prefs().getString(KEY_SITE, null);
@@ -131,11 +133,13 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (web != null) web.onResume();
+        updater.onResume();
     }
 
     @Override
     protected void onPause() {
         if (web != null) web.onPause();
+        updater.onPause();
         CookieManager.getInstance().flush();
         super.onPause();
     }
@@ -199,6 +203,7 @@ public class MainActivity extends Activity {
         root.addView(box, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         applyInsets(root);
         setContentView(root);
+        updater.reattach();
     }
 
     private Button choiceButton(String text, Runnable onClick) {
@@ -272,6 +277,7 @@ public class MainActivity extends Activity {
         root.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3), Gravity.TOP));
         applyInsets(root);
         setContentView(root);
+        updater.reattach();
 
         WebView.setWebContentsDebuggingEnabled((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0);
         WebSettings ws = web.getSettings();
@@ -279,7 +285,8 @@ public class MainActivity extends Activity {
         ws.setDomStorageEnabled(true);
         ws.setUseWideViewPort(true);
         ws.setLoadWithOverviewMode(true);
-        ws.setBuiltInZoomControls(true);
+        ws.setSupportZoom(false);
+        ws.setBuiltInZoomControls(false);
         ws.setDisplayZoomControls(false);
         ws.setSupportMultipleWindows(false); // los enlaces "target=_blank" se abren en la misma vista
         ws.setAllowFileAccess(false);
@@ -323,7 +330,7 @@ public class MainActivity extends Activity {
     private String buildInjectScript() {
         String boot = readAsset("ext/boot.css");
         String content = readAsset("ext/content.js");
-        return "(function(){if(window.__gcInjected)return;window.__gcInjected=true;"
+        return "(function(){if(window.__gcInjected)return;window.__gcInjected=true;window.__gcApp=true;"
                 + "try{var s=document.createElement('style');s.textContent=" + JSONObject.quote(boot)
                 + ";(document.head||document.documentElement).appendChild(s);}catch(e){}"
                 // Vista a tamaño de móvil aunque la página no declare viewport.
@@ -470,8 +477,16 @@ public class MainActivity extends Activity {
     }
 
     private void handleBack() {
-        if (web != null && web.canGoBack()) web.goBack();
-        else finish();
+        if (updater.isBlocking()) return;
+        if (web == null) {
+            finish();
+            return;
+        }
+        web.evaluateJavascript("(window.__gcBack&&window.__gcBack())?1:0", r -> {
+            if ("1".equals(r)) return;
+            if (web.canGoBack()) web.goBack();
+            else finish();
+        });
     }
 
     @SuppressWarnings("deprecation")
