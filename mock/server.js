@@ -32,7 +32,7 @@ const grades = { assignments: [
   { itemName: 'Test de repaso', grade: '7', points: 10, userId: 'u1' },
   { itemName: 'Examen parcial 1', grade: null, points: 10, userId: 'u1' },
 ] };
-const base = 'http://localhost:' + (process.env.PORT || 8123) + '/access/content/group/';
+const base = '/access/content/group/';
 const routes = {
   '/direct/user/current.json': { id: 'u1', eid: 'mcox', displayName: 'Miguel Cox' },
   '/direct/site.json': { site_collection: sites },
@@ -74,6 +74,18 @@ http.createServer((req, res) => {
   }
   const data = handle(p);
   if (data) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(data)); }
+  // PDF de ejemplo para los recursos (visor de PDF de la app Android)
+  if (/^\/access\/content\/.*\.pdf$/i.test(p) || p === '/x.pdf') {
+    res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="apuntes.pdf"' });
+    return res.end(fs.readFileSync(path.join(__dirname, 'apuntes.pdf')));
+  }
+  // Herramienta Tareas con un formulario de entrega (probar la subida de archivos)
+  if (/^\/portal\/tool\/[^/]+-t1$/.test(p)) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(`<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font-family:sans-serif;padding:16px">
+      <h3>Entregar tarea</h3><form onsubmit="event.preventDefault();document.getElementById('r').textContent='Seleccionados: '+[...document.getElementById('f').files].map(f=>f.name+' ('+f.size+' B)').join(', ')">
+      <input id="f" type="file" multiple><br><br><button>Enviar</button></form><p id="r"></p></body></html>`);
+  }
   if (/^\/direct\/gradebook\//.test(p)) { res.writeHead(501); return res.end('Not Implemented'); }
   if (p === '/logo-white.svg') {
     res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
@@ -93,7 +105,7 @@ http.createServer((req, res) => {
   if (p.startsWith('/portal/tool/')) { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(`<body style="font-family:sans-serif;padding:24px"><h2>Herramienta original de Sakai</h2><p>${p}</p></body>`); }
   if (p.startsWith('/portal')) {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    return res.end(`<!doctype html><html><head><title>Aula Virtual : Bienvenida : Inicio</title><link rel="icon" href="/ext/icons/icon48.png"><link rel="stylesheet" href="/ext/boot.css"><script>window.chrome={runtime:{getURL:p=>'/ext/'+p}}</script><script src="/ext/content.js"></script></head><body style="margin:0;font-family:sans-serif"><header class="portal-header" style="display:flex;align-items:center;justify-content:space-between;height:56px;background:#002028;color:#fff;padding:0 12px"><div class="portal-header-logo"><a class="btn btn-logo" style="display:inline-block;width:160px;height:40px;background:url(/logo-white.svg) no-repeat left center/contain"></a></div><a class="sak-sysInd-systemAlerts me-auto" style="margin-right:auto"></a><button style="margin:0 6px">🔔</button><span id="userav" style="width:32px;height:32px;border-radius:50%;background:#888;display:inline-block"></span></header><div id="sakai">PORTAL ORIGINAL DE SAKAI</div></body></html>`);
+    return res.end(`<!doctype html><html><head><title>Aula Virtual : Bienvenida : Inicio</title><link rel="icon" href="/ext/icons/icon48.png"><link rel="stylesheet" href="/ext/boot.css"><script>window.chrome={runtime:{getURL:p=>'/ext/'+p}}</script><script>if(!window.__gcInjected){var sc=document.createElement("script");sc.src="/ext/content.js";document.head.appendChild(sc);}</script></head><body style="margin:0;font-family:sans-serif"><header class="portal-header" style="display:flex;align-items:center;justify-content:space-between;height:56px;background:#002028;color:#fff;padding:0 12px"><div class="portal-header-logo"><a class="btn btn-logo" style="display:inline-block;width:160px;height:40px;background:url(/logo-white.svg) no-repeat left center/contain"></a></div><a class="sak-sysInd-systemAlerts me-auto" style="margin-right:auto"></a><button style="margin:0 6px">🔔</button><span id="userav" style="width:32px;height:32px;border-radius:50%;background:#888;display:inline-block"></span></header><div id="sakai">PORTAL ORIGINAL DE SAKAI</div></body></html>`);
   }
   res.writeHead(404); res.end();
 }).listen(process.env.PORT || 8123, () => console.log('mock on http://localhost:8123/portal'));

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutId="cambiar_aula"
+        android:shortcutLongLabel="@string/shortcut_change_long"
+        android:shortcutShortLabel="@string/shortcut_change">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="io.github.miguelcoxcaballero.aulasakai.MainActivity"
+            android:targetPackage="io.github.miguelcoxcaballero.aulasakai">
+            <extra android:name="choose" android:value="true" />
+        </intent>
+    </shortcut>
+</shortcuts>

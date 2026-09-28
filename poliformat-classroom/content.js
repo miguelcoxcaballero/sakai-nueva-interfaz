@@ -960,6 +960,7 @@
     } else if (crumb) {
       crumbHtml = `<span class="crumb-sep">${icon('chevR')}</span><span class="crumb"><span class="t1">${esc(crumb)}</span></span>`;
     }
+    $top.classList.toggle('has-crumb', !!crumbHtml);
     $top.innerHTML = `
       <button class="ibtn" data-act="drawer" title="Menú principal">${icon('menu')}</button>
       <a class="brand" data-nav href="/portal">${LOGO}</a>
@@ -1323,7 +1324,7 @@
         <div class="banner" style="background-image:${banner(site)}">
           <h1>${esc(site.title)}</h1>
           ${site.sub ? `<div class="banner-sub">${esc(site.sub)}</div>` : ''}
-          <button class="banner-btn" data-act="colors" data-site="${esc(site.id)}">${icon('palette')}Personalizar</button>
+          <button class="banner-btn" data-act="colors" data-site="${esc(site.id)}">${icon('palette')}<span>Personalizar</span></button>
         </div>
         <div class="stream-grid">
           <aside>

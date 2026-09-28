@@ -1,0 +1,63 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Firma de la versión release: se lee de keystore.properties (no se sube a GitHub).
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }
+
+android {
+    namespace 'io.github.miguelcoxcaballero.aulasakai'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'io.github.miguelcoxcaballero.aulasakai'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            release {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (keystoreFile.exists()) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // La interfaz es la misma que la de la extensión: se copia desde ../../poliformat-classroom.
+    sourceSets {
+        main.assets.srcDirs += [layout.buildDirectory.dir('generated/extAssets').get().asFile]
+    }
+}
+
+tasks.register('copyExtension', Copy) {
+    from('../../poliformat-classroom') {
+        include 'content.js', 'app.css', 'boot.css'
+    }
+    into(layout.buildDirectory.dir('generated/extAssets/ext'))
+}
+preBuild.dependsOn copyExtension
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.14.0'
+}

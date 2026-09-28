@@ -451,3 +451,28 @@ a.crumb:hover .t1 { text-decoration: underline; }
 
 /* Logo claro (pensado para cabeceras oscuras): se muestra sobre el color de la cabecera original */
 .logo-light .logo-img { box-sizing: content-box; padding: 5px 12px; border-radius: 8px; background: var(--hdr, #202124); }
+
+/* ---------- Móvil (app Android y navegadores estrechos) ---------- */
+@media (max-width: 600px) {
+  .topbar { padding: 0 4px; gap: 0; }
+  .topbar .ibtn { width: 40px; height: 40px; }
+  /* Dentro de una asignatura manda su nombre: se oculta el logo */
+  .topbar.has-crumb .brand, .topbar.has-crumb .crumb-sep { display: none; }
+  .crumb { flex: 1; padding: 0 4px; }
+  .crumb .t1 { font-size: 18px; line-height: 24px; }
+  .top-right { gap: 0; }
+  .switch { padding: 0 6px; }
+  .me { margin: 0 4px 0 2px; }
+  .logo-img { height: 26px; max-width: 140px; }
+  .page, .home { padding: 16px; }
+  .banner { height: 150px; padding: 16px; }
+  .banner h1 { font-size: 26px; line-height: 32px; }
+  .banner-sub { font-size: 16px; line-height: 22px; }
+  .banner-btn { top: 12px; right: 12px; bottom: auto; width: 36px; padding: 0; justify-content: center; border-radius: 50%; }
+  .banner-btn span { display: none; }
+  .tab { padding: 0 12px; }
+  .topic-h, .people-h { font-size: 24px; line-height: 32px; }
+  .gr-head { flex-wrap: wrap; padding: 16px; }
+  .gr-avg { margin-left: 0; text-align: left; }
+  .cal-grid { grid-template-columns: repeat(7, minmax(96px, 1fr)); }
+}
