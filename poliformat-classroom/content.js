@@ -1040,7 +1040,8 @@
     S.favPayload = fav;
     let local = null;
     try { local = JSON.parse(localStorage.getItem(FAVS_KEY)); } catch { /* sin datos locales */ }
-    if (Array.isArray(local) && localStorage.getItem(FAVS_SYNCED_KEY) !== '1') {
+    // La app Android nunca sube su lista antigua: manda lo que haya en Sakai (lo marcado en el PC).
+    if (!APP && Array.isArray(local) && localStorage.getItem(FAVS_SYNCED_KEY) !== '1') {
       S.favs = local;
       pushFavs(local);
     } else {
