@@ -1,6 +1,6 @@
 # Nueva interfaz para Sakai
 
-> 📱 **[Descargar Aula Sakai 1.1.2 para Android (APK)](https://github.com/miguelcoxcaballero/sakai-nueva-interfaz/raw/main/aula-sakai-release-v1.1.2.apk)** — ábrelo en el móvil para instalarlo. Las siguientes versiones se instalan solas desde la app.
+> 📱 **[Descargar Aula Sakai 1.1.3 para Android (APK)](https://github.com/miguelcoxcaballero/sakai-nueva-interfaz/raw/main/aula-sakai-release-v1.1.3.apk)** — ábrelo en el móvil para instalarlo. Las siguientes versiones se instalan solas desde la app.
 
 Extensión para Chrome y Brave, y app para Android, que da a las aulas virtuales hechas con [Sakai](https://www.sakailms.org/) —como **PoliformaT** (UPV) o el **Aula Virtual** (UM)— una interfaz moderna al estilo de Google Classroom.
 
@@ -41,7 +41,7 @@ Más detalles en [poliformat-classroom/README.md](poliformat-classroom/README.md
 python publicar_android.py 1.2.0 "Qué cambia"
 ```
 
-Compila el APK firmado, crea la release `android-v1.2.0` con `aula-sakai-release-v1.1.2.apk`, actualiza `android-update.json` y hace push. Las apps instaladas pedirán actualizar en cuanto lo detecten. Necesita la clave de firma (`android/keystore.properties` y `android/aula-sakai-release.keystore`), que no se sube al repositorio.
+Compila el APK firmado, crea la release `android-v1.2.0` con `aula-sakai-release-v1.1.3.apk`, actualiza `android-update.json` y hace push. Las apps instaladas pedirán actualizar en cuanto lo detecten. Necesita la clave de firma (`android/keystore.properties` y `android/aula-sakai-release.keystore`), que no se sube al repositorio.
 
 ## Instalar la extensión en modo desarrollador
 
