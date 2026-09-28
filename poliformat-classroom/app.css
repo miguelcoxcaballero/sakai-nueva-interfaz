@@ -618,3 +618,5 @@ a.crumb:hover .t1 { text-decoration: underline; }
 .app-mode .item-d { grid-column: 2; align-self: start; white-space: normal; }
 .app-mode .item-d:empty { display: none; }
 .app-mode .item-t small { margin-top: 1px; }
+
+.dwarn { color: #b3261e; }

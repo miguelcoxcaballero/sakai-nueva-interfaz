@@ -858,6 +858,8 @@
     }, true);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); closeDrawer(); } });
     window.addEventListener('popstate', render);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshFavs(); });
+    window.addEventListener('focus', refreshFavs);
 
     render();
     buildDrawer();
@@ -1034,25 +1036,40 @@
   // Favoritas: son las asignaturas «fijadas» de Sakai (/portal/favorites), así que se
   // comparten entre el ordenador, el móvil y la propia web de Sakai. El orden también.
   // La primera vez, lo que se hubiera marcado solo en este navegador se sube a Sakai.
+  // Cambios que no se pudieron guardar en Sakai: se conservan y se reintentan.
+  const FAVS_PENDING_KEY = 'gc-favs-pending';
+  const sameList = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => x === b[i]);
+
   function syncFavsFromServer(fav) {
     const server = fav && Array.isArray(fav.favoriteSiteIds) ? fav.favoriteSiteIds : null;
     if (!server) return;
     S.favPayload = fav;
     let local = null;
     try { local = JSON.parse(localStorage.getItem(FAVS_KEY)); } catch { /* sin datos locales */ }
-    // La app Android nunca sube su lista antigua: manda lo que haya en Sakai (lo marcado en el PC).
-    if (!APP && Array.isArray(local) && localStorage.getItem(FAVS_SYNCED_KEY) !== '1') {
+    const pending = localStorage.getItem(FAVS_PENDING_KEY) === '1';
+    // Primera sincronización: manda lo marcado en el ordenador. La app Android nunca sube
+    // su lista antigua (salvo cambios hechos en ella que no se llegaron a guardar).
+    const migrate = !APP && localStorage.getItem(FAVS_SYNCED_KEY) !== '1';
+    if (Array.isArray(local) && (pending || migrate)) {
       S.favs = local;
-      pushFavs(local);
+      if (!sameList(local, server)) pushFavs(local);
+      else markSynced();
     } else {
       S.favs = server.slice();
       localStorage.setItem(FAVS_KEY, JSON.stringify(S.favs));
-      localStorage.setItem(FAVS_SYNCED_KEY, '1');
+      markSynced();
     }
+  }
+
+  function markSynced() {
+    localStorage.setItem(FAVS_SYNCED_KEY, '1');
+    localStorage.removeItem(FAVS_PENDING_KEY);
+    S.favError = '';
   }
 
   let pushTimer = null;
   function pushFavs(ids) {
+    localStorage.setItem(FAVS_PENDING_KEY, '1');
     clearTimeout(pushTimer);
     pushTimer = setTimeout(async () => {
       try {
@@ -1065,12 +1082,35 @@
           headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
           body,
         });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        localStorage.setItem(FAVS_SYNCED_KEY, '1');
+        if (!r.ok) throw new Error(`el servidor respondió ${r.status}`);
+        // Comprobar que Sakai lo ha guardado de verdad.
+        const check = await api(`/portal/favorites/list?_${Date.now()}`);
+        if (!sameList(check.favoriteSiteIds, ids)) throw new Error('el servidor no guardó los cambios');
+        S.favPayload = check;
+        markSynced();
       } catch (err) {
+        S.favError = err.message || String(err);
         console.warn('[Nueva interfaz Sakai] No se pudieron guardar las favoritas en Sakai', err);
       }
-    }, 500);
+      if ($drawer) buildDrawer();
+    }, 400);
+  }
+
+  // Al volver a la pestaña o a la app se vuelven a leer las favoritas de Sakai, por si
+  // se cambiaron en otro dispositivo mientras tanto.
+  let lastFavCheck = 0;
+  async function refreshFavs() {
+    if (!S.favs || Date.now() - lastFavCheck < 3000 || localStorage.getItem(FAVS_PENDING_KEY) === '1') return;
+    lastFavCheck = Date.now();
+    try {
+      const fav = await api(`/portal/favorites/list?_${Date.now()}`);
+      if (!Array.isArray(fav.favoriteSiteIds) || sameList(fav.favoriteSiteIds, S.favs)) return;
+      S.favPayload = fav;
+      S.favs = fav.favoriteSiteIds.slice();
+      localStorage.setItem(FAVS_KEY, JSON.stringify(S.favs));
+      buildDrawer();
+      if (route().view === 'home') render({ keep: true });
+    } catch { /* sin conexión: se reintenta la próxima vez */ }
   }
 
   // Lista ordenada de ids de asignaturas favoritas.
@@ -1206,6 +1246,7 @@
       </select></div>` : ''}
       ${!inTerm.length ? '<div class="dhint lbl">No hay asignaturas en este curso.</div>'
         : !favs.length ? '<div class="dhint lbl">Pulsa ☆ en una asignatura de "Mostrar más" para tenerla siempre a la vista.</div>' : ''}
+      ${S.favError ? `<div class="dhint dwarn lbl">⚠ No se han podido guardar las favoritas en ${esc(SITE_NAME)} (${esc(S.favError)}). Se reintentará automáticamente.</div>` : ''}
       ${favs.map(siteItem).join('')}
       ${rest.length ? `<details class="dmore"${moreOpen || !favs.length ? ' open' : ''}>
         <summary class="dn" title="Mostrar más">${icon('expand')}<span class="lbl"><span class="more-closed">Mostrar más (${rest.length})</span><span class="more-open">Mostrar menos</span></span></summary>

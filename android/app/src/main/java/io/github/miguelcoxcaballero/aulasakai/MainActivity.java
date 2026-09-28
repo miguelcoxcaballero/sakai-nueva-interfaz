@@ -132,7 +132,11 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (web != null) web.onResume();
+        if (web != null) {
+            web.onResume();
+            // Al volver a la app, la interfaz vuelve a leer las favoritas de Sakai.
+            web.evaluateJavascript("window.dispatchEvent(new Event('focus'))", null);
+        }
         updater.onResume();
     }
 
