@@ -1,0 +1,7 @@
+{
+  "version": "1.1.0",
+  "versionCode": 2,
+  "required": true,
+  "apkUrl": "https://github.com/miguelcoxcaballero/sakai-nueva-interfaz/releases/download/android-v1.1.0/aula-sakai-release-v1.1.0.apk",
+  "releaseNotes": "Aspecto de la app de Classroom para Android (barra inferior, tarjetas y menú Material You), favoritas sincronizadas con Sakai entre PC y móvil, página principal solo con favoritas del curso elegido, modo Editar táctil en el menú lateral y actualizaciones dentro de la app."
+}
