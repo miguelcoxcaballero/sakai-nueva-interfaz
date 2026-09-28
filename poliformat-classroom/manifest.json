@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Nueva interfaz para Sakai",
+  "version": "1.7.0",
+  "description": "Interfaz moderna, al estilo de Google Classroom, para aulas virtuales hechas con Sakai (PoliformaT UPV, Aula Virtual UM…).",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["activeTab", "scripting"],
+  "optional_host_permissions": ["https://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://poliformat.upv.es/*", "https://aulavirtual.um.es/*"],
+      "js": ["content.js"],
+      "css": ["boot.css"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["app.css"],
+      "matches": ["https://*/*"]
+    }
+  ],
+  "action": {
+    "default_title": "Nueva interfaz para Sakai",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
+}

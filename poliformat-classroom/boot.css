@@ -1,0 +1,24 @@
+/* Oculta PoliformaT mientras se monta la interfaz (evita el parpadeo). */
+html.gc-boot body {
+  visibility: hidden !important;
+}
+
+/* Con la interfaz Classroom activa, solo se ve nuestro contenedor. */
+html.gc-on,
+html.gc-on body {
+  overflow: auto !important;
+  height: auto !important;
+  min-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #fff !important;
+  display: block !important;
+}
+
+html.gc-on body > :not(#gc-root) {
+  display: none !important;
+}
+
+#gc-root {
+  display: block;
+}
